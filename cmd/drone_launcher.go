@@ -28,7 +28,7 @@ func launchDrone(c *cli.Context) {
 	configmap := &kafka.ConfigMap{"bootstrap.servers": broker}
 
 	// Create new drone using the config map
-	drone, err := service.NewDrone(log, configmap)
+	drone, err := service.NewDrone(log, configmap, getRegularMessageTopic(c), getAssistanceMessageTopic(c))
 	if err != nil {
 		log.Error("New drone", zap.Error(err))
 	}
@@ -36,7 +36,5 @@ func launchDrone(c *cli.Context) {
 	defer drone.Close()
 
 	// Start the drone service that will send messages regularly
-	if err := drone.Start(context.Background(), msgInterval); err != nil {
-		log.Error("start drone", zap.Error(err))
-	}
+	drone.Start(context.Background(), msgInterval)
 }

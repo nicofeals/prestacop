@@ -28,6 +28,14 @@ func getBroker(c *cli.Context) string {
 	return c.String("broker")
 }
 
+func getRegularMessageTopic(c *cli.Context) string {
+	return c.String("regular-message-topic")
+}
+
+func getAssistanceMessageTopic(c *cli.Context) string {
+	return c.String("assistance-message-topic")
+}
+
 func getMessageInterval(c *cli.Context) time.Duration {
 	return c.Duration("message-interval")
 }
@@ -63,6 +71,18 @@ func buildCLI() *cli.App {
 					Value:  "localhost",
 					Usage:  "broker to produce messages to",
 					EnvVar: config.EnvKeyBroker,
+				},
+				cli.StringFlag{
+					Name:   "regular-message-topic",
+					Value:  "regular-msg",
+					Usage:  "topic for regular messages",
+					EnvVar: config.EnvKeyRegularMessageTopic,
+				},
+				cli.StringFlag{
+					Name:   "assistance-message-topic",
+					Value:  "assistance-msg",
+					Usage:  "topic for messages that require assistance",
+					EnvVar: config.EnvKeyAssistanceMessageTopic,
 				},
 				cli.DurationFlag{
 					Name:   "message-interval",

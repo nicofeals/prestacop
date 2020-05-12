@@ -21,6 +21,14 @@
   version = "v0.9.1"
 
 [[projects]]
+  digest = "1:c2a594011eed07da14918c519a5b1d08e4bafb2497037f6a426dc310428df4d3"
+  name = "github.com/segmentio/ksuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ffd9a8aaaf8f40792e055371eba06542348e991e"
+  version = "v1.0.2"
+
+[[projects]]
   digest = "1:ca4df663ad76879ad38dbd736493679cbb1aa596c6d479fd9fc5e959e5ceb4fb"
   name = "github.com/urfave/cli"
   packages = ["."]
@@ -65,6 +73,7 @@
   input-imports = [
     "github.com/confluentinc/confluent-kafka-go/kafka",
     "github.com/pkg/errors",
+    "github.com/segmentio/ksuid",
     "github.com/urfave/cli",
     "go.uber.org/zap",
     "go.uber.org/zap/zapcore",
