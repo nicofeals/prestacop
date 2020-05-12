@@ -2,9 +2,12 @@
 
 
 [[projects]]
-  digest = "1:29c5e0b5357d9855d3a22b5dd2bacdea0cd5674c1aaae9c329cfb14fed0250b8"
+  digest = "1:1ffcd8f0d120b77f2c134a2ca061f6a2572deff45bc27384e4c95cca5fda37ae"
   name = "github.com/confluentinc/confluent-kafka-go"
-  packages = ["kafka/librdkafka"]
+  packages = [
+    "kafka",
+    "kafka/librdkafka",
+  ]
   pruneopts = "UT"
   revision = "bb5bb31194f8046f3c9f09fbf0a3aae460a02000"
   version = "v1.4.2"
@@ -16,6 +19,14 @@
   pruneopts = "UT"
   revision = "614d223910a179a466c1767a985424175c39b465"
   version = "v0.9.1"
+
+[[projects]]
+  digest = "1:ca4df663ad76879ad38dbd736493679cbb1aa596c6d479fd9fc5e959e5ceb4fb"
+  name = "github.com/urfave/cli"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "e6cf83ec39f6e1158ced1927d4ed14578fda8edb"
+  version = "v1.21.0"
 
 [[projects]]
   digest = "1:19525e48b45af69339bd7c2812137dbd1e650a78fc09c7c75482e307d51aa28d"
@@ -48,22 +59,15 @@
   revision = "feeb9a050b31b40eec6f2470e7599eeeadfe5bdd"
   version = "v1.15.0"
 
-[[projects]]
-  digest = "1:18812cf52c2e73491bf74d2a85e51bd1ce371327b9a0e49762c80c505dfe591d"
-  name = "gopkg.in/confluentinc/confluent-kafka-go.v1"
-  packages = ["kafka"]
-  pruneopts = "UT"
-  revision = "bb5bb31194f8046f3c9f09fbf0a3aae460a02000"
-  version = "v1.4.2"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/confluentinc/confluent-kafka-go/kafka",
     "github.com/pkg/errors",
+    "github.com/urfave/cli",
     "go.uber.org/zap",
     "go.uber.org/zap/zapcore",
-    "gopkg.in/confluentinc/confluent-kafka-go.v1/kafka",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
