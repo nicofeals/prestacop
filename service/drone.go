@@ -23,7 +23,6 @@ type Drone struct {
 	id                 string
 	log                *zap.Logger
 	kafkaProducer      *kafka.Producer
-	deliveryChan       chan kafka.Event
 	regularMsgTopic    string
 	assistanceMsgTopic string
 }
@@ -48,7 +47,6 @@ func NewDrone(log *zap.Logger, configmap *kafka.ConfigMap, regularMsgTopic, assi
 		id:                 "DR-" + ksuid.New().String(),
 		kafkaProducer:      producer,
 		log:                log,
-		deliveryChan:       make(chan kafka.Event),
 		regularMsgTopic:    regularMsgTopic,
 		assistanceMsgTopic: assistanceMsgTopic,
 	}, nil
@@ -86,7 +84,6 @@ func (d *Drone) Start(ctx context.Context, msgInterval time.Duration) {
 // Close the drone's kafka Producer
 func (d *Drone) Close() {
 	d.kafkaProducer.Close()
-	close(d.deliveryChan)
 }
 
 func (d *Drone) sendMessage() error {
@@ -151,7 +148,20 @@ func (d *Drone) sendMessage() error {
 				},
 			},
 			Value: imgBuf.Bytes(),
-		}, d.deliveryChan)
+		}, nil)
+		if err != nil {
+			return errors.WithMessage(err, "produce image")
+		}
+
+		e := <-d.kafkaProducer.Events()
+
+		if ke, ok := e.(kafka.Error); ok {
+			d.log.Error("image",
+				zap.Any("code", ke.Code()),
+				zap.String("error", ke.String()),
+			)
+			return errors.New("produce image")
+		}
 	}
 
 	// Produce message to regular message topic
@@ -168,14 +178,19 @@ func (d *Drone) sendMessage() error {
 			},
 		},
 		Value: msgByte,
-	}, d.deliveryChan)
+	}, nil)
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.WithMessage(err, "produce regular")
 	}
 
-	e := <-d.deliveryChan
-	if m := e.(*kafka.Message); m.TopicPartition.Error != nil {
-		return errors.WithStack(m.TopicPartition.Error)
+	e := <-d.kafkaProducer.Events()
+
+	if ke, ok := e.(kafka.Error); ok {
+		d.log.Error("regular message",
+			zap.Any("code", ke.Code()),
+			zap.String("error", ke.String()),
+		)
+		return errors.New("produce regular message")
 	}
 
 	return nil
@@ -200,14 +215,19 @@ func (d *Drone) sendAssistanceMessage() error {
 	err = d.kafkaProducer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &d.assistanceMsgTopic, Partition: kafka.PartitionAny},
 		Value:          msgByte,
-	}, d.deliveryChan)
+	}, nil)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	e := <-d.deliveryChan
-	if m := e.(*kafka.Message); m.TopicPartition.Error != nil {
-		return errors.WithStack(m.TopicPartition.Error)
+	e := <-d.kafkaProducer.Events()
+
+	if ke, ok := e.(kafka.Error); ok {
+		d.log.Error("assistance message",
+			zap.Any("code", ke.Code()),
+			zap.String("error", ke.String()),
+		)
+		return errors.New("produce assistance message")
 	}
 
 	return nil
