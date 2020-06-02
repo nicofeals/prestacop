@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
@@ -25,7 +26,13 @@ func launchDrone(c *cli.Context) {
 	msgInterval := getMessageInterval(c)
 
 	// Config map used for the kafka producer
-	configmap := &kafka.ConfigMap{"bootstrap.servers": broker}
+	configmap := &kafka.ConfigMap{
+		"bootstrap.servers": broker,
+		"sasl.mechanisms":   "PLAIN",
+		"security.protocol": "SASL_SSL",
+		"sasl.username":     "$ConnectionString",
+		"sasl.password":     os.Getenv("KAFKA_EVENTHUB_CONNECTION_STRING"),
+	}
 
 	// Create new drone using the config map
 	drone, err := service.NewDrone(log, configmap, getRegularMessageTopic(c), getAssistanceMessageTopic(c))

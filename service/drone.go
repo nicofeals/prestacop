@@ -1,14 +1,10 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"image"
-	"image/jpeg"
 	"math/rand"
-	"os"
 	"strconv"
 	"time"
 
@@ -88,7 +84,7 @@ func (d *Drone) Close() {
 
 func (d *Drone) sendMessage() error {
 	// Once every 2 regular messages, an violation is detected and sent
-	// If so, we set the violation code, the image ID, and send the image
+	// If so, we set the violation code and the image ID
 	isViolation := false
 	if rand.Int()%2 == 0 {
 		isViolation = true
@@ -96,7 +92,7 @@ func (d *Drone) sendMessage() error {
 
 	// Generate violation code and image id
 	violationCode := rand.Intn(99) + 1
-	imgID := fmt.Sprintf("img-%d-%s-%s", violationCode, ksuid.New().String(), d.id)
+	imgID := fmt.Sprintf("img-%d-%s-%s", violationCode, d.id, ksuid.New().String())
 
 	// Generate random street code
 	location := rand.Int63n(89999) + 10000
@@ -115,69 +111,16 @@ func (d *Drone) sendMessage() error {
 		return errors.WithStack(err)
 	}
 
-	// If we need to send the image (isViolation is true), we send it
-	if isViolation {
-		randomImgIndex := rand.Intn(20) + 1
-		fImg, err := os.Open(fmt.Sprintf("../data/%d.jpg", randomImgIndex))
-		if err != nil {
-			return errors.WithMessage(err, "load image")
-		}
-		defer fImg.Close()
-		img, _, err := image.Decode(fImg)
-		if err != nil {
-			return errors.WithMessage(err, "decode image")
-		}
-		imgBuf := new(bytes.Buffer)
-		if err := jpeg.Encode(imgBuf, img, nil); err != nil {
-			return errors.WithStack(err)
-		}
-
-		d.log.Info("Produce image",
-			zap.String("image id", imgID),
-		)
-		err = d.kafkaProducer.Produce(&kafka.Message{
-			TopicPartition: kafka.TopicPartition{Topic: &d.regularMsgTopic, Partition: kafka.PartitionAny},
-			Headers: []kafka.Header{
-				kafka.Header{
-					Key:   "type",
-					Value: []byte("image"),
-				},
-				kafka.Header{
-					Key:   "id",
-					Value: []byte(imgID),
-				},
-			},
-			Value: imgBuf.Bytes(),
-		}, nil)
-		if err != nil {
-			return errors.WithMessage(err, "produce image")
-		}
-
-		e := <-d.kafkaProducer.Events()
-
-		if ke, ok := e.(kafka.Error); ok {
-			d.log.Error("image",
-				zap.Any("code", ke.Code()),
-				zap.String("error", ke.String()),
-			)
-			return errors.New("produce image")
-		}
-	}
-
 	// Produce message to regular message topic
 	d.log.Info("Produce regular message",
 		zap.String("drone id", d.id),
 		zap.String("location", msg.Location),
+		zap.Int("violation code", msg.ViolationCode),
+		zap.String("image id", msg.ImageID),
 	)
 	err = d.kafkaProducer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &d.regularMsgTopic, Partition: kafka.PartitionAny},
-		Headers: []kafka.Header{
-			kafka.Header{
-				Key:   "type",
-				Value: []byte("message"),
-			},
-		},
-		Value: msgByte,
+		Value:          msgByte,
 	}, nil)
 	if err != nil {
 		return errors.WithMessage(err, "produce regular")
@@ -197,17 +140,19 @@ func (d *Drone) sendMessage() error {
 }
 
 func (d *Drone) sendAssistanceMessage() error {
+	// Generate random street code
+	location := rand.Int63n(89999) + 10000
 	msg := &Message{
 		DroneID:  d.id,
 		Time:     time.Now(),
-		Location: "NYC",
+		Location: strconv.FormatInt(location, 10),
 	}
 	msgByte, err := json.Marshal(msg)
 	if err != nil {
 
 	}
 
-	// Produce message to regular message topic
+	// Produce message to assistance message topic
 	d.log.Info("Produce assistance message",
 		zap.String("drone id", d.id),
 		zap.String("location", msg.Location),
