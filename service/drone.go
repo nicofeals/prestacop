@@ -16,35 +16,34 @@ import (
 
 // Drone sends messages to the kafka stream
 type Drone struct {
-	id                 string
-	log                *zap.Logger
-	kafkaProducer      *kafka.Producer
-	regularMsgTopic    string
-	assistanceMsgTopic string
+	id            string
+	log           *zap.Logger
+	kafkaProducer *kafka.Producer
+	topic         string
 }
 
 // Message contains the information sent by the drone
 type Message struct {
-	Location      string    `json:"location"`
-	Time          time.Time `json:"time"`
-	DroneID       string    `json:"drone-id"`
-	ViolationCode int       `json:"violation-code"`
-	ImageID       string    `json:"image-id"`
+	Location           string    `json:"location"`
+	Time               time.Time `json:"time"`
+	DroneID            string    `json:"drone-id"`
+	ViolationCode      int       `json:"violation-code"`
+	ImageID            string    `json:"image-id"`
+	RequiresAssistance bool      `json:"requires-assistance"`
 }
 
 // NewDrone initializes a new Drone instance with a kafka producer (and a logger)
-func NewDrone(log *zap.Logger, configmap *kafka.ConfigMap, regularMsgTopic, assistanceMsgTopic string) (*Drone, error) {
+func NewDrone(log *zap.Logger, configmap *kafka.ConfigMap, topic string) (*Drone, error) {
 	producer, err := kafka.NewProducer(configmap)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	return &Drone{
-		id:                 "DR-" + ksuid.New().String(),
-		kafkaProducer:      producer,
-		log:                log,
-		regularMsgTopic:    regularMsgTopic,
-		assistanceMsgTopic: assistanceMsgTopic,
+		id:            "DR-" + ksuid.New().String(),
+		kafkaProducer: producer,
+		log:           log,
+		topic:         topic,
 	}, nil
 }
 
@@ -59,19 +58,8 @@ func (d *Drone) Start(ctx context.Context, msgInterval time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-time.After(d.randomDuration(msgInterval)):
-			value := rand.Int() % 10
-
-			// 1 out of 10 messages is a message demanding assistance.
-			// All other messages are regular messages.
-			switch value {
-			case 0:
-				if err := d.sendAssistanceMessage(); err != nil {
-					d.log.Error("send regular message", zap.Error(err))
-				}
-			default:
-				if err := d.sendMessage(); err != nil {
-					d.log.Error("send assistance message", zap.Error(err))
-				}
+			if err := d.sendMessage(); err != nil {
+				d.log.Error("send message", zap.Error(err))
 			}
 		}
 	}
@@ -83,6 +71,13 @@ func (d *Drone) Close() {
 }
 
 func (d *Drone) sendMessage() error {
+	// 1 out of 10 times, a message is an assistance required message
+	value := rand.Int() % 10
+	requiresAssistance := false
+	if value == 0 {
+		requiresAssistance = true
+	}
+
 	// Once every 2 regular messages, an violation is detected and sent
 	// If so, we set the violation code and the image ID
 	isViolation := false
@@ -97,10 +92,12 @@ func (d *Drone) sendMessage() error {
 	// Generate random street code
 	location := rand.Int63n(89999) + 10000
 	msg := &Message{
-		DroneID:  d.id,
-		Time:     time.Now(),
-		Location: strconv.FormatInt(location, 10),
+		DroneID:            d.id,
+		Time:               time.Now(),
+		Location:           strconv.FormatInt(location, 10),
+		RequiresAssistance: requiresAssistance,
 	}
+
 	if isViolation {
 		msg.ImageID = imgID
 		msg.ViolationCode = violationCode
@@ -111,68 +108,39 @@ func (d *Drone) sendMessage() error {
 		return errors.WithStack(err)
 	}
 
-	// Produce message to regular message topic
-	d.log.Info("Produce regular message",
-		zap.String("drone id", d.id),
-		zap.String("location", msg.Location),
-		zap.Int("violation code", msg.ViolationCode),
-		zap.String("image id", msg.ImageID),
-	)
+	// Produce message to concerned topic
+	if !requiresAssistance {
+		d.log.Info("Produce regular message",
+			zap.String("drone id", d.id),
+			zap.String("location", msg.Location),
+			zap.Int("violation code", msg.ViolationCode),
+			zap.String("image id", msg.ImageID),
+		)
+	} else {
+		d.log.Info("Produce assistance message",
+			zap.String("drone id", d.id),
+			zap.String("location", msg.Location),
+			zap.Int("violation code", msg.ViolationCode),
+			zap.String("image id", msg.ImageID),
+		)
+	}
+
 	err = d.kafkaProducer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &d.regularMsgTopic, Partition: kafka.PartitionAny},
+		TopicPartition: kafka.TopicPartition{Topic: &d.topic, Partition: kafka.PartitionAny},
 		Value:          msgByte,
 	}, nil)
 	if err != nil {
-		return errors.WithMessage(err, "produce regular")
+		return errors.WithMessage(err, "produce message")
 	}
 
 	e := <-d.kafkaProducer.Events()
 
 	if ke, ok := e.(kafka.Error); ok {
-		d.log.Error("regular message",
+		d.log.Error("message",
 			zap.Any("code", ke.Code()),
 			zap.String("error", ke.String()),
 		)
-		return errors.New("produce regular message")
-	}
-
-	return nil
-}
-
-func (d *Drone) sendAssistanceMessage() error {
-	// Generate random street code
-	location := rand.Int63n(89999) + 10000
-	msg := &Message{
-		DroneID:  d.id,
-		Time:     time.Now(),
-		Location: strconv.FormatInt(location, 10),
-	}
-	msgByte, err := json.Marshal(msg)
-	if err != nil {
-
-	}
-
-	// Produce message to assistance message topic
-	d.log.Info("Produce assistance message",
-		zap.String("drone id", d.id),
-		zap.String("location", msg.Location),
-	)
-	err = d.kafkaProducer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &d.assistanceMsgTopic, Partition: kafka.PartitionAny},
-		Value:          msgByte,
-	}, nil)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	e := <-d.kafkaProducer.Events()
-
-	if ke, ok := e.(kafka.Error); ok {
-		d.log.Error("assistance message",
-			zap.Any("code", ke.Code()),
-			zap.String("error", ke.String()),
-		)
-		return errors.New("produce assistance message")
+		return errors.New("produce message")
 	}
 
 	return nil

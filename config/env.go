@@ -7,6 +7,5 @@ const (
 	EnvKeyMessageInterval = "PRESTACOP_DRONE_MESSAGE_INTERVAL"
 	EnvKeyBroker          = "PRESTACOP_DRONE_BROKER"
 
-	EnvKeyRegularMessageTopic    = "PRESTACOP_DRONE_REGULAR_MESSAGE_TOPIC"
-	EnvKeyAssistanceMessageTopic = "PRESTACOP_DRONE_ASSISTANCE_MESSAGE_TOPIC"
+	EnvKeyMessageTopic = "PRESTACOP_DRONE_MESSAGE_TOPIC"
 )

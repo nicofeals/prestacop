@@ -35,7 +35,7 @@ func launchDrone(c *cli.Context) {
 	}
 
 	// Create new drone using the config map
-	drone, err := service.NewDrone(log, configmap, getRegularMessageTopic(c), getAssistanceMessageTopic(c))
+	drone, err := service.NewDrone(log, configmap, getMessageTopic(c))
 	if err != nil {
 		log.Error("New drone", zap.Error(err))
 	}

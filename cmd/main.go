@@ -28,8 +28,8 @@ func getBroker(c *cli.Context) string {
 	return c.String("broker")
 }
 
-func getRegularMessageTopic(c *cli.Context) string {
-	return c.String("regular-message-topic")
+func getMessageTopic(c *cli.Context) string {
+	return c.String("message-topic")
 }
 
 func getAssistanceMessageTopic(c *cli.Context) string {
@@ -73,16 +73,10 @@ func buildCLI() *cli.App {
 					EnvVar: config.EnvKeyBroker,
 				},
 				cli.StringFlag{
-					Name:   "regular-message-topic",
-					Value:  "regular-msg",
-					Usage:  "topic for regular messages",
-					EnvVar: config.EnvKeyRegularMessageTopic,
-				},
-				cli.StringFlag{
-					Name:   "assistance-message-topic",
-					Value:  "assistance-msg",
-					Usage:  "topic for messages that require assistance",
-					EnvVar: config.EnvKeyAssistanceMessageTopic,
+					Name:   "message-topic",
+					Value:  "drone-msg",
+					Usage:  "topic for messages",
+					EnvVar: config.EnvKeyMessageTopic,
 				},
 				cli.DurationFlag{
 					Name:   "message-interval",
