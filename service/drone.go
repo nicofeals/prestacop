@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/mmcloughlin/spherand"
 	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
@@ -22,14 +23,15 @@ type Drone struct {
 	topic         string
 }
 
-// Message contains the information sent by the drone
-type Message struct {
-	Location           string    `json:"location"`
-	Time               time.Time `json:"time"`
+// DroneMessage contains the information sent by the drone
+type DroneMessage struct {
 	DroneID            string    `json:"drone-id"`
+	Time               time.Time `json:"time"`
+	RequiresAssistance bool      `json:"requires-assistance"`
+	Latitude           float64   `json:"latitude"`
+	Longitude          float64   `json:"longitude"`
 	ViolationCode      int       `json:"violation-code"`
 	ImageID            string    `json:"image-id"`
-	RequiresAssistance bool      `json:"requires-assistance"`
 }
 
 // NewDrone initializes a new Drone instance with a kafka producer (and a logger)
@@ -40,7 +42,7 @@ func NewDrone(log *zap.Logger, configmap *kafka.ConfigMap, topic string) (*Drone
 	}
 
 	return &Drone{
-		id:            "DR-" + ksuid.New().String(),
+		id:            "DRN-" + ksuid.New().String(),
 		kafkaProducer: producer,
 		log:           log,
 		topic:         topic,
@@ -89,12 +91,14 @@ func (d *Drone) sendMessage() error {
 	violationCode := rand.Intn(99) + 1
 	imgID := fmt.Sprintf("img-%d-%s-%s", violationCode, d.id, ksuid.New().String())
 
-	// Generate random street code
-	location := rand.Int63n(89999) + 10000
-	msg := &Message{
+	// Generate random coordinates
+	lat, long := spherand.Geographical()
+
+	msg := &DroneMessage{
 		DroneID:            d.id,
 		Time:               time.Now(),
-		Location:           strconv.FormatInt(location, 10),
+		Latitude:           lat,
+		Longitude:          long,
 		RequiresAssistance: requiresAssistance,
 	}
 
@@ -112,14 +116,18 @@ func (d *Drone) sendMessage() error {
 	if !requiresAssistance {
 		d.log.Info("Produce regular message",
 			zap.String("drone id", d.id),
-			zap.String("location", msg.Location),
+			zap.Time("time", msg.Time),
+			zap.Float64("latitude", msg.Latitude),
+			zap.Float64("longitude", msg.Longitude),
 			zap.Int("violation code", msg.ViolationCode),
 			zap.String("image id", msg.ImageID),
 		)
 	} else {
 		d.log.Info("Produce assistance message",
 			zap.String("drone id", d.id),
-			zap.String("location", msg.Location),
+			zap.Time("time", msg.Time),
+			zap.Float64("latitude", msg.Latitude),
+			zap.Float64("longitude", msg.Longitude),
 			zap.Int("violation code", msg.ViolationCode),
 			zap.String("image id", msg.ImageID),
 		)
@@ -151,4 +159,17 @@ func (d *Drone) randomDuration(duration time.Duration) time.Duration {
 	// with a low bound (lb) and high bound (hb)
 	// So it is rand.Intn(hb - lb) + lb = rand.Intn(2/3 * duration) + 2/3 * duration
 	return time.Duration(rand.Int63n(2*int64(duration)/3) + 2*int64(duration)/3)
+}
+
+// Using a given street code, randomLocation generates coordinates
+func randomLocation(streetCode string) (float64 /* Latitude */, float64 /* Longitude */, error) {
+	sc, err := strconv.ParseInt(streetCode, 10, 0)
+	if err != nil {
+		return 0, 0, errors.WithStack(err)
+	}
+	g := spherand.NewGenerator(rand.New(rand.NewSource(sc)))
+
+	lat, long := g.Geographical()
+
+	return lat, long, nil
 }

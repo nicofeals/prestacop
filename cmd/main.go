@@ -32,8 +32,8 @@ func getMessageTopic(c *cli.Context) string {
 	return c.String("message-topic")
 }
 
-func getAssistanceMessageTopic(c *cli.Context) string {
-	return c.String("assistance-message-topic")
+func getCSVpath(c *cli.Context) string {
+	return c.String("csv-path")
 }
 
 func getMessageInterval(c *cli.Context) time.Duration {
@@ -63,7 +63,7 @@ func buildCLI() *cli.App {
 
 	app.Commands = []cli.Command{
 		{
-			Name:  "start",
+			Name:  "drone",
 			Usage: "start drone simulator",
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -87,6 +87,33 @@ func buildCLI() *cli.App {
 			},
 			Action: func(c *cli.Context) {
 				launchDrone(c)
+			},
+		},
+		{
+			Name:  "csv",
+			Usage: "start csv lines sender",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:   "broker, b",
+					Value:  "localhost",
+					Usage:  "broker to produce messages to",
+					EnvVar: config.EnvKeyBroker,
+				},
+				cli.StringFlag{
+					Name:   "message-topic",
+					Value:  "drone-msg",
+					Usage:  "topic for messages",
+					EnvVar: config.EnvKeyMessageTopic,
+				},
+				cli.StringFlag{
+					Name:   "csv-path",
+					Value:  "",
+					Usage:  "path of the csv file to use",
+					EnvVar: config.EnvKeyCSVPath,
+				},
+			},
+			Action: func(c *cli.Context) {
+				launchCsvSender(c)
 			},
 		},
 	}
