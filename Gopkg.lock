@@ -13,6 +13,14 @@
   version = "v1.4.2"
 
 [[projects]]
+  branch = "master"
+  digest = "1:137d2e7ffd604b7834756558cdbde2e86c9e089d841b716144d0b4c95e8f21fb"
+  name = "github.com/mmcloughlin/spherand"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "cd5c4c9261aac9b0528dbfe11541895916c3da93"
+
+[[projects]]
   digest = "1:9e1d37b58d17113ec3cb5608ac0382313c5b59470b94ed97d0976e69c7022314"
   name = "github.com/pkg/errors"
   packages = ["."]
@@ -72,6 +80,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/confluentinc/confluent-kafka-go/kafka",
+    "github.com/mmcloughlin/spherand",
     "github.com/pkg/errors",
     "github.com/segmentio/ksuid",
     "github.com/urfave/cli",
