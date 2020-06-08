@@ -41,8 +41,12 @@ func NewDrone(log *zap.Logger, configmap *kafka.ConfigMap, topic string) (*Drone
 		return nil, errors.WithStack(err)
 	}
 
+	id := "DRN-" + ksuid.New().String()
+	log.Info("Created new drone",
+		zap.String("id", id),
+	)
 	return &Drone{
-		id:            "DRN-" + ksuid.New().String(),
+		id:            id,
 		kafkaProducer: producer,
 		log:           log,
 		topic:         topic,

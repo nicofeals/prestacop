@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/rand"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
@@ -34,14 +35,23 @@ func launchDrone(c *cli.Context) {
 		"sasl.password":     os.Getenv("KAFKA_EVENTHUB_CONNECTION_STRING"),
 	}
 
-	// Create new drone using the config map
-	drone, err := service.NewDrone(log, configmap, getMessageTopic(c))
-	if err != nil {
-		log.Error("New drone", zap.Error(err))
-	}
-	// Close the drone's producer at the end before exiting
-	defer drone.Close()
+	var wg sync.WaitGroup
+	for i := 0; i < getDroneInstances(c); i++ {
+		wg.Add(1)
+		go func(log *zap.Logger, configmap *kafka.ConfigMap, c *cli.Context, wg *sync.WaitGroup) {
+			defer wg.Done()
+			// Create new drone using the config map
+			drone, err := service.NewDrone(log, configmap, getMessageTopic(c))
+			if err != nil {
+				log.Error("New drone", zap.Error(err))
+			}
+			// Close the drone's producer at the end before exiting
+			defer drone.Close()
 
-	// Start the drone service that will send messages regularly
-	drone.Start(context.Background(), msgInterval)
+			// Start the drone service that will send messages regularly
+			drone.Start(context.Background(), msgInterval)
+		}(log, configmap, c, &wg)
+	}
+
+	wg.Wait()
 }

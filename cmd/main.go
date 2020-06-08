@@ -40,6 +40,10 @@ func getMessageInterval(c *cli.Context) time.Duration {
 	return c.Duration("message-interval")
 }
 
+func getDroneInstances(c *cli.Context) int {
+	return c.Int("drone-instances")
+}
+
 func buildCLI() *cli.App {
 	app := cli.NewApp()
 	app.Name = "prestacop-drone"
@@ -83,6 +87,12 @@ func buildCLI() *cli.App {
 					Value:  time.Minute,
 					Usage:  "time between each sent message",
 					EnvVar: config.EnvKeyMessageInterval,
+				},
+				cli.IntFlag{
+					Name:   "drone-instances",
+					Value:  1,
+					Usage:  "number of drone instances to run simultaneously",
+					EnvVar: config.EnvKeyDroneInstances,
 				},
 			},
 			Action: func(c *cli.Context) {
