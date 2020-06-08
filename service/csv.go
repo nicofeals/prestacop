@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -95,7 +96,11 @@ func (s *CsvSender) sendMessage(record []string) error {
 		return errors.WithStack(err)
 	}
 
-	issueDate, err := time.Parse("01/02/2006", record[4])
+	t := "00:00AM"
+	if len(record[19]) == 5 {
+		t = fmt.Sprintf("%s:%sM", record[19][:2], record[19][2:])
+	}
+	issueDate, err := time.Parse("01/02/2006 03:04PM", fmt.Sprintf("%s %s", record[4], t))
 	if err != nil {
 		return errors.WithStack(err)
 	}
