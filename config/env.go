@@ -8,6 +8,7 @@ const (
 	EnvKeyBroker          = "PRESTACOP_DRONE_BROKER"
 	EnvKeyDroneInstances  = "PRESTACOP_DRONE_INSTANCES"
 
-	EnvKeyMessageTopic = "PRESTACOP_DRONE_MESSAGE_TOPIC"
+	EnvKeyRegularMessageTopic = "PRESTACOP_DRONE_REGULAR_MESSAGE_TOPIC"
+	EnvKeyAssistanceMessageTopic = "PRESTACOP_DRONE_ASSISTANCE_MESSAGE_TOPIC"
 	EnvKeyCSVPath      = "PRESTACOP_CSV_PATH"
 )

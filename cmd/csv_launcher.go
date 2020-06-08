@@ -34,7 +34,7 @@ func launchCsvSender(c *cli.Context) {
 	}
 
 	// Create new csv sender using the config map
-	csvSender, err := service.NewCsvSender(log, configmap, getMessageTopic(c), getCSVpath(c))
+	csvSender, err := service.NewCsvSender(log, configmap, getRegularMessageTopic(c), getCSVpath(c))
 	if err != nil {
 		log.Error("New drone", zap.Error(err))
 	}

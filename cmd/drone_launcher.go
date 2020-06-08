@@ -41,7 +41,7 @@ func launchDrone(c *cli.Context) {
 		go func(log *zap.Logger, configmap *kafka.ConfigMap, c *cli.Context, wg *sync.WaitGroup) {
 			defer wg.Done()
 			// Create new drone using the config map
-			drone, err := service.NewDrone(log, configmap, getMessageTopic(c))
+			drone, err := service.NewDrone(log, configmap, getRegularMessageTopic(c), getAssistanceMessageTopic(c))
 			if err != nil {
 				log.Error("New drone", zap.Error(err))
 			}

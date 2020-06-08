@@ -17,10 +17,11 @@ import (
 
 // Drone sends messages to the kafka stream
 type Drone struct {
-	id            string
-	log           *zap.Logger
-	kafkaProducer *kafka.Producer
-	topic         string
+	id              string
+	log             *zap.Logger
+	kafkaProducer   *kafka.Producer
+	regularTopic    string
+	assistanceTopic string
 }
 
 // DroneMessage contains the information sent by the drone
@@ -35,7 +36,7 @@ type DroneMessage struct {
 }
 
 // NewDrone initializes a new Drone instance with a kafka producer (and a logger)
-func NewDrone(log *zap.Logger, configmap *kafka.ConfigMap, topic string) (*Drone, error) {
+func NewDrone(log *zap.Logger, configmap *kafka.ConfigMap, regularTopic, assistanceTopic string) (*Drone, error) {
 	producer, err := kafka.NewProducer(configmap)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -46,10 +47,11 @@ func NewDrone(log *zap.Logger, configmap *kafka.ConfigMap, topic string) (*Drone
 		zap.String("id", id),
 	)
 	return &Drone{
-		id:            id,
-		kafkaProducer: producer,
-		log:           log,
-		topic:         topic,
+		id:              id,
+		kafkaProducer:   producer,
+		log:             log,
+		regularTopic:    regularTopic,
+		assistanceTopic: assistanceTopic,
 	}, nil
 }
 
@@ -116,7 +118,7 @@ func (d *Drone) sendMessage() error {
 		return errors.WithStack(err)
 	}
 
-	// Produce message to concerned topic
+	// Produce message to concerned regularTopic
 	if !requiresAssistance {
 		d.log.Info("Produce regular message",
 			zap.String("drone id", d.id),
@@ -137,8 +139,12 @@ func (d *Drone) sendMessage() error {
 		)
 	}
 
+	topic := d.regularTopic
+	if requiresAssistance {
+		topic = d.assistanceTopic
+	}
 	err = d.kafkaProducer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &d.topic, Partition: kafka.PartitionAny},
+		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
 		Value:          msgByte,
 	}, nil)
 	if err != nil {

@@ -28,8 +28,12 @@ func getBroker(c *cli.Context) string {
 	return c.String("broker")
 }
 
-func getMessageTopic(c *cli.Context) string {
-	return c.String("message-topic")
+func getRegularMessageTopic(c *cli.Context) string {
+	return c.String("regular-message-topic")
+}
+
+func getAssistanceMessageTopic(c *cli.Context) string {
+	return c.String("assistance-message-topic")
 }
 
 func getCSVpath(c *cli.Context) string {
@@ -77,10 +81,16 @@ func buildCLI() *cli.App {
 					EnvVar: config.EnvKeyBroker,
 				},
 				cli.StringFlag{
-					Name:   "message-topic",
-					Value:  "drone-msg",
-					Usage:  "topic for messages",
-					EnvVar: config.EnvKeyMessageTopic,
+					Name:   "regular-message-topic",
+					Value:  "regular-msg",
+					Usage:  "topic for regular messages",
+					EnvVar: config.EnvKeyRegularMessageTopic,
+				},
+				cli.StringFlag{
+					Name:   "assistance-message-topic",
+					Value:  "assistance-msg",
+					Usage:  "topic for assistance messages",
+					EnvVar: config.EnvKeyAssistanceMessageTopic,
 				},
 				cli.DurationFlag{
 					Name:   "message-interval",
@@ -111,9 +121,9 @@ func buildCLI() *cli.App {
 				},
 				cli.StringFlag{
 					Name:   "message-topic",
-					Value:  "drone-msg",
+					Value:  "regular-msg",
 					Usage:  "topic for messages",
-					EnvVar: config.EnvKeyMessageTopic,
+					EnvVar: config.EnvKeyRegularMessageTopic,
 				},
 				cli.StringFlag{
 					Name:   "csv-path",
