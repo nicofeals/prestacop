@@ -7,9 +7,11 @@ The Go code implements a
 # Build
 To build the go app, follow these steps
 - install Go and setup the Go environment, such as assigning the different values (GOPATH, etc)
+- install [dep](https://golang.github.io/dep/docs/installation.html)
 - clone the repo following this path: `$GOPATH/src/github.com/nicofeals/prestacop`
 - export `KAFKA_EVENTHUB_CONNECTION_STRING` with the correct value for the Azure EventHubs
 ```
+dep ensure -v
 cd cmd/
 go build .
 ```
